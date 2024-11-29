@@ -1,15 +1,59 @@
+"""
+Random Forest Implementation
+
+This module contains the implementation of the Random Forest algorithm.
+
+"""
+
+
 import numpy as np
 import pandas as pd
 
 from DecisonTreeC45 import entropy,entropy_main,gain,si,gain_ratio,best_split_value,to_category,detect_continuous_columns,find_highest_gain_ratio_value,divide_data,classify,predict,accuracy
 
+
 def random_feature_selection(features):
+    """
+    Select a subset of features randomly.
+
+    Parameters
+    ----------
+    features : list
+        List of features to select from.
+
+    Returns
+    -------
+    list
+        List of selected features.
+    """
     num_features_to_select = int(np.ceil(np.sqrt(len(features))))
     selected_features = np.random.choice(features, size=num_features_to_select, replace=False)
     return selected_features.tolist()
 
 
+
 def build_tree(data,min_data=10,target_feature='class',max_depth = 5,current_depth = 1) : 
+    """
+    Build a decision tree.
+
+    Parameters
+    ----------
+    data : pandas.DataFrame
+        Input dataframe.
+    min_data : int, optional
+        Minimum number of samples to split a node, by default 10.
+    target_feature : str, optional
+        Target feature, by default 'class'.
+    max_depth : int, optional
+        Maximum depth of the tree, by default 5.
+    current_depth : int, optional
+        Current depth of the tree, by default 1.
+
+    Returns
+    -------
+    dict
+        The decision tree.
+    """
     #stopping conditions : data size , no more features to test on , max depth acheived
     if data.shape[0] < min_data or len(data[target_feature].unique()) == 1 or current_depth==max_depth:
         return data[target_feature].mode()[0]
@@ -38,6 +82,19 @@ def build_tree(data,min_data=10,target_feature='class',max_depth = 5,current_dep
 
 
 def bootstrap_sample(data): 
+    """
+    Bootstrap sample from the data.
+
+    Parameters
+    ----------
+    data : pandas.DataFrame
+        Input dataframe.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Bootstrap sample.
+    """
     n = len(data)
     
     bootstrap_indices = np.random.choice(range(n), size=n, replace=True)
@@ -50,7 +107,30 @@ def bootstrap_sample(data):
     return bootstrap, out_of_bag
 
 
+
+
 def train_random_forest(data,nbr_trees=5,tree_min_data=10,target_feature='class',tree_max_depth = 4):
+    """
+    Train a Random Forest model.
+
+    Parameters
+    ----------
+    data : pandas.DataFrame
+        Input dataframe.
+    nbr_trees : int, optional
+        Number of trees to train, by default 5.
+    tree_min_data : int, optional
+        Minimum number of samples to split a node, by default 10.
+    target_feature : str, optional
+        Target feature, by default 'class'.
+    tree_max_depth : int, optional
+        Maximum depth of the tree, by default 4.
+
+    Returns
+    -------
+    list
+        List of trained trees.
+    """
     trees = []
     oob = []
     for i in range(nbr_trees):
@@ -63,6 +143,21 @@ def train_random_forest(data,nbr_trees=5,tree_min_data=10,target_feature='class'
 
 
 def predict_random_forest(trees,data):
+    """
+    Make predictions using a trained Random Forest model.
+
+    Parameters
+    ----------
+    trees : list
+        List of trained trees.
+    data : pandas.DataFrame
+        Input dataframe.
+
+    Returns
+    -------
+    numpy.ndarray
+        Predictions.
+    """
     results = []
     for tree in trees : 
         results.append(predict(tree,data))
@@ -72,3 +167,5 @@ def predict_random_forest(trees,data):
     #most_common_values = np.apply_along_axis(lambda row: np.bincount(row).argmax(), axis=1, arr=rs)
     #most_common_values = most_frequent_in_rows(rs)
     return most_common_values
+
+
