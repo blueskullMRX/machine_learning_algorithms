@@ -111,7 +111,6 @@ def recursive_feature_elimination_lr(train_data,target,min_feature=1): # lr= log
     features = data.columns.to_list()
     features.remove(target)
 
-
     train_x = train_data[features].values
     train_y = train_data[target].values
     scaler = StandardScaler()
