@@ -69,22 +69,17 @@ def main():
         X, y, test_size=0.2, random_state=42, stratify=y
     )
 
-    # Train a random forest model with default hyperparameters
-    rf_model = rf()
-    train_model(rf_model, X_train, y_train)
-    print("Random Forest Model Accuracy:", evaluate(rf_model, X_test, y_test))
 
-
-    # # Train and evaluate models
-    # models = [
-    #     (lr, {"learning_rate": [0.001, 0.01, 0.1], 'epsilon':[1e-6, 1e-5, 1e-4], "max_iter": [100, 200, 500]}),
-    #     (rf, {"n_trees": [4,5,6], "max_depth": [3, 5, 7], "min_data": [5, 10, 15]}),
-    #     (lgb, {"n_estimators": [10, 20, 50], "learning_rate": [0.001, 0.01, 0.1]}),
-    # ]
-    # for model_class, hyperparams in models:
-    #     print("\n", model_class.__name__ + ":")
-    #     model = gridsearch(X_train, y_train, model_class, hyperparams)
-    #     evaluate(model, X_test, y_test)
+    # Train and evaluate models
+    models = [
+        (lr, {"learning_rate": [0.001, 0.01, 0.1], 'epsilon':[1e-6, 1e-5, 1e-4], "max_iter": [100, 200, 500]}),
+        (rf, {"n_trees": [4,5,6], "max_depth": [3, 5, 7], "min_data": [5, 10, 15]}),
+        (lgb, {"n_estimators": [10, 20, 50], "learning_rate": [0.001, 0.01, 0.1]}),
+    ]
+    for model_class, hyperparams in models:
+        print("\n", model_class.__name__ + ":")
+        model = gridsearch(X_train, y_train, model_class, hyperparams)
+        evaluate(model, X_test, y_test)
 
 
 def gridsearch(X_train, y_train, model_class, hyperparams):
