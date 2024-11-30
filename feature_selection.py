@@ -1,7 +1,7 @@
 import numpy as np
 from RandomForest import train_random_forest, predict_random_forest, accuracy, gain_ratio
 import pandas as pd
-from LogisticRegression import train_lr, predict
+from models.LR import train_lr, predict
 from sklearn.preprocessing import StandardScaler
 
 # Feature selection methods
