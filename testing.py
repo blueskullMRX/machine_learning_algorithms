@@ -4,8 +4,9 @@ from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, classification_report
 from LogisticRegression import LogisticRegression as lr
+from models.RF import RandomForest as rf 
 from LightGBM import LightGBM as lgb
-from RandomForest import RandomForest as rf  # Assuming RandomForest is implemented as above
+# from RandomForest import RandomForest as rf  
 from sklearn.model_selection import ParameterGrid
 from time import time
 
@@ -37,7 +38,6 @@ param_grid_lr = {
 
 total_iterations = len(ParameterGrid(param_grid_lr))
 print(f'Testing {lr.__name__}')
-startTime = time()
 for i, hyperparam_dict in enumerate(ParameterGrid(param_grid_lr), start=1):
     model = lr(**hyperparam_dict)
     model.fit(X_train, y_train)
@@ -51,9 +51,32 @@ for i, hyperparam_dict in enumerate(ParameterGrid(param_grid_lr), start=1):
         best_model = model
         best_params = hyperparam_dict
 
-print('Execution Time is : ', time() - startTime)
-# Adding the optimal model to the best_models dictionary
 best_models[best_model] = best_params
+
+param_grid_rf = {
+    'n_estimators': [5, 10, 15, 20],
+    'max_depth': [None, 3, 5, 7, 9, 11],
+    'max_features': [None],
+}
+
+# Training the Random Forest Model
+total_iterations = len(ParameterGrid(param_grid_rf))
+print(f'Testing {rf.__name__}')
+for i, hyperparam_dict in enumerate(ParameterGrid(param_grid_rf), start=1):
+    model = rf(**hyperparam_dict)
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+    score = accuracy_score(y_test, y_pred)
+
+    print(f"\t{i}/{total_iterations} -> : {hyperparam_dict} | Accuracy: {score:.3f}")
+
+    if score > best_score:
+        best_score = score
+        best_model = model
+        best_params = hyperparam_dict
+
+best_models[best_model] = best_params
+
 
 
 print(f"""Best models and their hyperparameters:
