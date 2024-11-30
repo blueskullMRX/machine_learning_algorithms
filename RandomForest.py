@@ -1,171 +1,145 @@
-"""
-Random Forest Implementation
-
-This module contains the implementation of the Random Forest algorithm.
-
-"""
-
-
+from DecisionTreeC45 import DecisionTree
 import numpy as np
 import pandas as pd
 
-from DecisonTreeC45 import entropy,entropy_main,gain,si,gain_ratio,best_split_value,to_category,detect_continuous_columns,find_highest_gain_ratio_value,divide_data,classify,predict,accuracy
 
-
-def random_feature_selection(features):
+class RandomForest:
     """
-    Select a subset of features randomly.
-
-    Parameters
-    ----------
-    features : list
-        List of features to select from.
-
-    Returns
-    -------
-    list
-        List of selected features.
+    Random Forest implementation using Decision Trees with random feature selection.
     """
-    num_features_to_select = int(np.ceil(np.sqrt(len(features))))
-    selected_features = np.random.choice(features, size=num_features_to_select, replace=False)
-    return selected_features.tolist()
+
+    def __init__(self, n_trees=5, max_depth=4, min_data=10, target_feature="class"):
+        """
+        Initialize the Random Forest model.
+
+        Parameters:
+        - n_trees (int): Number of decision trees in the forest.
+        - max_depth (int): Maximum depth of each tree.
+        - min_data (int): Minimum samples required to split a node.
+        - target_feature (str): The target feature for classification.
+        """
+        self.n_trees = n_trees
+        self.max_depth = max_depth
+        self.min_data = min_data
+        self.target_feature = target_feature
+        self.trees = []
+        self.oob_data = None
+
+    def _random_feature_selection(self, features):
+        """
+        Randomly select a subset of features.
+
+        Parameters:
+        - features (list): List of feature names.
+
+        Returns:
+        - list: Subset of randomly selected features.
+        """
+        num_features_to_select = int(np.ceil(np.sqrt(len(features))))
+        return np.random.choice(features, size=num_features_to_select, replace=False).tolist()
+
+    def _bootstrap_sample(self, data):
+        """
+        Create a bootstrap sample and its corresponding out-of-bag data.
+
+        Parameters:
+        - data (pd.DataFrame): Input data.
+
+        Returns:
+        - tuple: (bootstrap sample, out-of-bag data).
+        """
+        n = len(data)
+        bootstrap_indices = np.random.choice(range(n), size=n, replace=True)
+        oob_indices = list(set(range(n)) - set(bootstrap_indices))
+        return data.iloc[bootstrap_indices], data.iloc[oob_indices]
+
+    def _build_tree(self, data):
+        """
+        Build a decision tree for the Random Forest using random feature selection.
+
+        Parameters:
+        - data (pd.DataFrame): Training data.
+
+        Returns:
+        - DecisionTree: Trained DecisionTree instance.
+        """
+        features = data.columns.tolist()
+        features.remove(self.target_feature)
+        selected_features = self._random_feature_selection(features)
+
+        # Include the target feature in the subset of data for training
+        selected_features.append(self.target_feature)
+        selected_data = data[selected_features]
+
+        tree = DecisionTree(
+            max_depth=self.max_depth,
+            min_data=self.min_data,
+            target_feature=self.target_feature,
+        )
+        tree.fit(selected_data)
+        return tree
+
+    def fit(self, data):
+        """
+        Train the Random Forest model.
+
+        Parameters:
+        - data (pd.DataFrame): Training data.
+        """
+        self.trees = []
+        oob_data_list = []
+
+        for _ in range(self.n_trees):
+            bootstrap, oob = self._bootstrap_sample(data)
+            oob_data_list.append(oob)
+            self.trees.append(self._build_tree(bootstrap))
+
+        self.oob_data = pd.concat(oob_data_list).drop_duplicates().reset_index(drop=True)
+
+    def predict(self, data):
+        """
+        Predict class labels for input data.
+
+        Parameters:
+        - data (pd.DataFrame): Input data.
+
+        Returns:
+        - np.ndarray: Predicted class labels.
+        """
+        predictions = [tree.predict(data) for tree in self.trees]
+        predictions_df = pd.DataFrame(predictions).T
+        return predictions_df.mode(axis=1)[0].values
+
+    def evaluate_oob(self):
+        """
+        Evaluate the model using out-of-bag data.
+
+        Returns:
+        - float: Accuracy on out-of-bag data.
+        """
+        if self.oob_data is None:
+            raise ValueError("Out-of-bag data not available. Train the model first.")
+
+        y_true = self.oob_data[self.target_feature].values
+        y_pred = self.predict(self.oob_data)
+        return (y_true == y_pred).mean()
 
 
+# Example usage
+if __name__ == "__main__":
+    # Example dataset
+    np.random.seed(0)
+    df = pd.DataFrame({
+        "feature1": np.random.rand(100),
+        "feature2": np.random.rand(100),
+        "class": np.random.choice([0, 1], size=100),
+    })
 
-def build_tree(data,min_data=10,target_feature='class',max_depth = 5,current_depth = 1) : 
-    """
-    Build a decision tree.
+    RandomForest = RandomForest(n_trees=10, max_depth=5, min_data=5, target_feature="class")
+    RandomForest.fit(df)
 
-    Parameters
-    ----------
-    data : pandas.DataFrame
-        Input dataframe.
-    min_data : int, optional
-        Minimum number of samples to split a node, by default 10.
-    target_feature : str, optional
-        Target feature, by default 'class'.
-    max_depth : int, optional
-        Maximum depth of the tree, by default 5.
-    current_depth : int, optional
-        Current depth of the tree, by default 1.
+    predictions = RandomForest.predict(df)
+    print("Predictions:", predictions)
 
-    Returns
-    -------
-    dict
-        The decision tree.
-    """
-    #stopping conditions : data size , no more features to test on , max depth acheived
-    if data.shape[0] < min_data or len(data[target_feature].unique()) == 1 or current_depth==max_depth:
-        return data[target_feature].mode()[0]
-    
-
-    #random forest edit !!!
-    features = data.columns.to_list()
-    features.remove(target_feature)
-    selected_features = random_feature_selection(features)
-    selected_features.append(target_feature)
-    selected_data = data[selected_features]
-    selected_data
-
-    #stopping condition : highest chi2 feature returned none
-    best_feature = find_highest_gain_ratio_value(selected_data, target_feature)
-    if best_feature is None:
-        return data[target_feature].mode()[0]  
-    
-    best_feature_values= data[best_feature].unique()
-
-    tree = {best_feature:{}}
-    for best_feature_value in best_feature_values :
-        tree[best_feature][best_feature_value] = build_tree(divide_data(data,best_feature)[best_feature_value],min_data,target_feature,current_depth=current_depth+1,max_depth=max_depth)
-        
-    return tree
-
-
-def bootstrap_sample(data): 
-    """
-    Bootstrap sample from the data.
-
-    Parameters
-    ----------
-    data : pandas.DataFrame
-        Input dataframe.
-
-    Returns
-    -------
-    pandas.DataFrame
-        Bootstrap sample.
-    """
-    n = len(data)
-    
-    bootstrap_indices = np.random.choice(range(n), size=n, replace=True)
-    
-    oob_indices = list(set(range(n)) - set(bootstrap_indices))
-    
-    bootstrap = data.iloc[bootstrap_indices]
-    out_of_bag = data.iloc[oob_indices]
-    
-    return bootstrap, out_of_bag
-
-
-
-
-def train_random_forest(data,nbr_trees=5,tree_min_data=10,target_feature='class',tree_max_depth = 4):
-    """
-    Train a Random Forest model.
-
-    Parameters
-    ----------
-    data : pandas.DataFrame
-        Input dataframe.
-    nbr_trees : int, optional
-        Number of trees to train, by default 5.
-    tree_min_data : int, optional
-        Minimum number of samples to split a node, by default 10.
-    target_feature : str, optional
-        Target feature, by default 'class'.
-    tree_max_depth : int, optional
-        Maximum depth of the tree, by default 4.
-
-    Returns
-    -------
-    list
-        List of trained trees.
-    """
-    trees = []
-    oob = []
-    for i in range(nbr_trees):
-        sub_data,test_sub_data = bootstrap_sample(data)
-        oob.append(test_sub_data)
-        trees.append(build_tree(sub_data,tree_min_data,target_feature,tree_max_depth))
-    test_data = pd.concat(oob, axis=0, ignore_index=True)
-    test_data.drop_duplicates(inplace=True)
-    return trees,test_data
-
-
-def predict_random_forest(trees,data):
-    """
-    Make predictions using a trained Random Forest model.
-
-    Parameters
-    ----------
-    trees : list
-        List of trained trees.
-    data : pandas.DataFrame
-        Input dataframe.
-
-    Returns
-    -------
-    numpy.ndarray
-        Predictions.
-    """
-    results = []
-    for tree in trees : 
-        results.append(predict(tree,data))
-    rs = np.column_stack(results)
-    rs_data = pd.DataFrame(data=rs,columns=range(len(trees)))
-    most_common_values = rs_data.mode(axis=1)[0].values
-    #most_common_values = np.apply_along_axis(lambda row: np.bincount(row).argmax(), axis=1, arr=rs)
-    #most_common_values = most_frequent_in_rows(rs)
-    return most_common_values
-
-
+    oob_accuracy = RandomForest.evaluate_oob()
+    print("OOB Accuracy:", oob_accuracy)

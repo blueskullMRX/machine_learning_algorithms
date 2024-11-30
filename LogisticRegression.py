@@ -1,94 +1,110 @@
 import numpy as np
-import pandas as pd
 
-def sigmoid(z):
-    """Compute the sigmoid of z."""
-    return 1 / (1 + np.exp(-z))
-
-def compute_loss(y, y_pred):
+class LogisticRegression:
     """
-    Compute the logistic regression loss (cross-entropy loss).
-
-    Parameters:
-    - y (numpy.ndarray): True labels.
-    - y_pred (numpy.ndarray): Predicted probabilities.
-
-    Returns:
-    - float: Computed loss.
+    Logistic Regression model trained using gradient descent.
+    Supports binary classification.
     """
-    m = len(y)
-    return -1 / m * np.sum(y * np.log(y_pred) + (1 - y) * np.log(1 - y_pred))
+    def __init__(self, learning_rate=0.01, epsilon=1e-5, max_iter=3000):
+        """
+        Initialize the model.
 
-def train_lr(X, y, learning_rate=0.01, epsilon=0.00001, max_iteration=3000):
-    """
-    Train a logistic regression model using gradient descent.
+        Parameters:
+        - learning_rate (float): Learning rate for gradient descent.
+        - epsilon (float): Convergence threshold.
+        - max_iter (int): Maximum number of iterations for training.
+        """
+        self.learning_rate = learning_rate
+        self.epsilon = epsilon
+        self.max_iter = max_iter
+        self.weights = None
+        self.bias = 0
 
-    Parameters:
-    - X (numpy.ndarray): Training features.
-    - y (numpy.ndarray): Training labels.
-    - learning_rate (float): Learning rate for gradient descent.
-    - epsilon (float): Convergence threshold.
-    - max_iteration (int): Maximum number of iterations.
+    @staticmethod
+    def sigmoid(z):
+        """Compute the sigmoid function."""
+        return 1 / (1 + np.exp(-z))
 
-    Returns:
-    - tuple: Weights and bias of the trained model.
-    """
-    m, n = X.shape
-    weights = np.zeros(n)
-    bias = 0
-    loss = None
+    @staticmethod
+    def compute_loss(y, y_pred):
+        """
+        Compute the logistic regression loss (cross-entropy loss).
 
-    for iteration in range(max_iteration):
-        prev_loss = loss
+        Parameters:
+        - y (numpy.ndarray): True labels.
+        - y_pred (numpy.ndarray): Predicted probabilities.
 
-        # Compute the linear combination and apply sigmoid
-        z = np.dot(X, weights) + bias
-        y_pred = sigmoid(z)
+        Returns:
+        - float: Computed loss.
+        """
+        return -np.mean(y * np.log(y_pred + 1e-10) + (1 - y) * np.log(1 - y_pred + 1e-10))
 
-        # Compute gradients
-        dw = (1 / m) * np.dot(X.T, (y_pred - y))
-        db = (1 / m) * np.sum(y_pred - y)
+    def fit(self, X, y):
+        """
+        Train the logistic regression model using gradient descent.
 
-        # Update parameters
-        weights -= learning_rate * dw
-        bias -= learning_rate * db
+        Parameters:
+        - X (numpy.ndarray): Training features of shape (n_samples, n_features).
+        - y (numpy.ndarray): Training labels of shape (n_samples,).
+        """
+        m, n = X.shape
+        self.weights = np.zeros(n)
+        self.bias = 0
 
-        # Compute the loss
-        loss = compute_loss(y, y_pred)
+        for iteration in range(self.max_iter):
+            # Compute predictions
+            z = np.dot(X, self.weights) + self.bias
+            y_pred = self.sigmoid(z)
 
-        # Check for convergence
-        if prev_loss is not None and np.abs(loss - prev_loss) < epsilon:
-            print(f"Converged at iteration {iteration + 1}")
-            break
+            # Compute gradients
+            dw = np.dot(X.T, (y_pred - y)) / m
+            db = np.mean(y_pred - y)
 
-    return weights, bias
+            # Update weights and bias
+            self.weights -= self.learning_rate * dw
+            self.bias -= self.learning_rate * db
 
-def predict_proba(X, weights, bias):
-    """
-    Predict the probabilities of the positive class for input features.
+            # Compute loss and check for convergence
+            loss = self.compute_loss(y, y_pred)
+            if iteration > 0 and np.abs(loss - prev_loss) < self.epsilon:
+                print(f"Converged at iteration {iteration + 1}")
+                break
+            prev_loss = loss
 
-    Parameters:
-    - X (numpy.ndarray): Input features.
-    - weights (numpy.ndarray): Model weights.
-    - bias (float): Model bias.
+    def predict_proba(self, X):
+        """
+        Predict the probabilities of the positive class for input features.
 
-    Returns:
-    - numpy.ndarray: Predicted probabilities.
-    """
-    z = np.dot(X, weights) + bias
-    return sigmoid(z)
+        Parameters:
+        - X (numpy.ndarray): Input features of shape (n_samples, n_features).
 
-def predict(X, weights, bias):
-    """
-    Predict binary labels for input features.
+        Returns:
+        - numpy.ndarray: Predicted probabilities.
+        """
+        z = np.dot(X, self.weights) + self.bias
+        return self.sigmoid(z)
 
-    Parameters:
-    - X (numpy.ndarray): Input features.
-    - weights (numpy.ndarray): Model weights.
-    - bias (float): Model bias.
+    def predict(self, X):
+        """
+        Predict binary labels for input features.
 
-    Returns:
-    - numpy.ndarray: Predicted binary labels (0 or 1).
-    """
-    p = predict_proba(X, weights, bias)
-    return (p >= 0.5).astype(int)
+        Parameters:
+        - X (numpy.ndarray): Input features of shape (n_samples, n_features).
+
+        Returns:
+        - numpy.ndarray: Predicted binary labels (0 or 1).
+        """
+        probabilities = self.predict_proba(X)
+        return (probabilities >= 0.5).astype(int)
+
+# Example Usage
+if __name__ == "__main__":
+    np.random.seed(0)
+    X = np.random.rand(100, 2)
+    y = (X[:, 0] + X[:, 1] >= 1).astype(int)
+
+    model = LogisticRegression(learning_rate=0.1, epsilon=1e-5, max_iter=3000)
+    model.fit(X, y)
+    y_pred = model.predict(X)
+
+    print("Predictions:", y_pred)
