@@ -1,16 +1,8 @@
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
 from imblearn.over_sampling import SMOTE
-import os
-from feature_selection import (
-    corr_filter, 
-    backward_selection_rf, 
-    backward_selection_lr,
-    recursive_feature_elimination_rf, 
-    recursive_feature_elimination_lr,
-)
+
 
 def handle_missing_values(dataframe, option='drop'):
     """
@@ -94,40 +86,3 @@ def preprocessing_pipeline(dataframe,
         )
 
     return dataframe_processed, X_processed, y_processed
-
-def efsa_pipeline(dataframe, target_column, verbose=False):
-    """
-    Perform Enhanced Feature Selection Algorithm (EFSA).
-    """
-    from DecisionTreeC45 import detect_continuous_columns, to_category
-
-    if not os.path.exists('to_category.csv'):
-        continuous_columns = detect_continuous_columns(dataframe, threshold=10)
-        for feature in continuous_columns:
-            data[feature] = to_category(data, feature, target_column)
-        data.to_csv('to_category.csv', index=False)
-    else:
-        data = pd.read_csv('to_category.csv')
-
-    subsets = {}
-
-    if verbose: print('Performing EFSA:')
-
-    if verbose: print('\t--->Correlation Filter: ', end='')
-    selected_features = corr_filter.corr_filter(dataframe, target_column)
-    subsets['Correlation Filter'] = selected_features
-    if verbose: print(selected_features)
-
-    if verbose: print('\t--->Backward elimination based wrapper: ', end='')
-    selected_features = FS.backward_selection_rf(data, target='class')
-    subsets['Backward elimination based wrapper'] = selected_features
-    if verbose: print(selected_features)
-
-    if verbose: print('\t--->Recursive Feature Elimination (RandomForest): ', end='')
-    selected_features = FS.recursive_feature_elimination_rf(data, target_column, min_feature=1)
-    subsets['RFE-RF'] = selected_features
-    if verbose: print(selected_features)
-    print('\tEFSA done')
-
-    return subsets
-

@@ -1,227 +1,134 @@
 import numpy as np
-from RandomForest import train_random_forest, predict_random_forest, accuracy, gain_ratio
 import pandas as pd
-from LogisticRegression import train_lr, predict
-from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
 
-# Feature selection methods
 
-# Feature selection based on Filter method
-def corr_filter(df, target, min_cor=0.35):
-    """
-    Filter features based on correlation with target.
 
-    Parameters
-    ----------
-    df : pandas.DataFrame
-        Input dataframe.
-    target : str
-        Target feature.
-    min_cor : float, optional
-        Minimum absolute correlation, by default 0.35.
-
-    Returns
-    -------
-    list
-        List of features that have correlation with target greater than or equal to min_cor.
-    """
-    corr = df.corr()[target].abs()
-    return corr[corr >= min_cor].index.difference([target]).tolist()
-
-def corr_filter_between(df, target, min_cor=0.35):
-    """
-    Filter features based on correlation with target and between selected features.
-
-    Parameters
-    ----------
-    df : pandas.DataFrame
-        Input dataframe.
-    target : str
-        Target feature.
-    min_cor : float, optional
-        Minimum absolute correlation, by default 0.35.
-
-    Returns
-    -------
-    list
-        List of features that have correlation with target greater than or equal to min_cor 
-        and are not highly correlated with each other.
-    """
+#based on Filter
+def corr_filter(df,target,min_cor=0.35):
     corr = df.corr()
     target_corr = corr[target].abs()
-    selected_features = target_corr[target_corr >= min_cor].index.difference([target])
-    # Find highly correlated features among selected features
-    corr_between = corr.loc[selected_features, selected_features]
-    highly_correlated = (corr_between >= 1 - min_cor).any(axis=0)
-    # Remove highly correlated features from the selected list
-    return selected_features.difference(corr_between.columns[highly_correlated]).tolist()
+    #target_corr = target_corr.drop(target)
+    selected_features = target_corr[target_corr >= min_cor].index.tolist()
+    selected_features.remove(target)
+    return selected_features
 
-# Feature selection based on Wrapper method
-def to_accuracy_rf(data, target):
-    """
-    Calculate accuracy of Random Forest on the given data.
+#based on filter : advanced uses corr bewteen features too
+def corr_filter_between(df,target,min_cor=0.35):
+    corr = df.corr()
+    target_corr = corr[target].abs()
+    #target_corr = target_corr.drop(target)
+    selected_features = target_corr[target_corr >= min_cor].index.tolist()
 
-    Parameters
-    ----------
-    data : pandas.DataFrame
-        Input dataframe.
-    target : str
-        Target feature.
+    features = selected_features
+    features.remove(target)
+    corr_between = df[features].corr()
+    for feature in selected_features : 
+        if feature not in features : continue
+        target_corr_between = corr_between[feature].abs()
+        delete_features = target_corr_between[target_corr_between >= 1-min_cor].index.tolist()
+        for x in delete_features :
+            if x in features : features.remove(x)
+    return features
 
-    Returns
-    -------
-    float
-        Accuracy of the Random Forest model.
-    """
-    trees, _ = train_random_forest(data, tree_max_depth=8, nbr_trees=5)
-    pred = predict_random_forest(trees, data)
-    return accuracy(pred, data[target])
+#based on Wrapper
+from RandomForest import train_random_forest,predict_random_forest,accuracy,gain_ratio
 
-def to_accuracy_lr(data, target):
-    """
-    Calculate accuracy of Logistic Regression on the given data.
+def to_accuracy_rf(data,target):# rf= random forest
 
-    Parameters
-    ----------
-    data : pandas.DataFrame
-        Input dataframe.
-    target : str
-        Target feature.
+    train,test = train_test_split(data, test_size=0.2, random_state=42)
+    
+    train = pd.DataFrame(data=train,columns=data.columns)
+    test = pd.DataFrame(data=test,columns=data.columns)
+    
+    trees,_ = train_random_forest(train,tree_max_depth=4,nbr_trees=8)
+    pred = predict_random_forest(trees,test)
+    return accuracy(pred,test[target])
 
-    Returns
-    -------
-    float
-        Accuracy of the Logistic Regression model.
-    """
+from LogisticRegression import train_lr,predict
+from sklearn.preprocessing import StandardScaler
+
+def to_accuracy_lr(data,target):# lr= logistic regression
     x = data.drop(target, axis='columns').values
     y = data[target].values
     y_df = data[target]
     scaler = StandardScaler()
     x = scaler.fit_transform(x)
 
-    w, b = train_lr(x, y, epsilon=0.00001, max_iteration=3000)
-    pred = predict(x, w, b)
-    return accuracy(pred, y_df)
+    x_train,x_test,y_train,y_test = train_test_split(x,y, test_size=0.2, random_state=42)
+    y_test = pd.DataFrame(data=y_test,columns=[target])
 
-def backward_selection_rf(data, target):
-    """
-    Perform backward feature selection using Random Forest.
+    w,b = train_lr(x_train,y_train,epsilon=0.00001,max_iteration = 3000)
+    pred = predict(x_test,w,b)
+    return accuracy(pred,y_test)
 
-    Parameters
-    ----------
-    data : pandas.DataFrame
-        Input dataframe.
-    target : str
-        Target feature.
 
-    Returns
-    -------
-    list
-        List of selected features.
-    """
+def backward_selection_rf(data,target,max_columns=50):# rf= random forest
     features = data.columns.to_list()
     remaining_features = features
-    acc = to_accuracy_rf(data, target)
-    for feature in features:
-        if feature == target:
-            continue
-        temp = remaining_features
-        temp.remove(feature)
-        temp_acc = to_accuracy_rf(data[temp], target)
-        if temp_acc >= acc:
-            acc = temp_acc
-            remaining_features = temp
+    acc = to_accuracy_rf(data,target)
+    print(acc)
+    print(len(remaining_features))
+    while len(remaining_features) > max_columns :
+        print(len(remaining_features))
+        print(acc)
+        for feature in features :
+            if feature == target :
+                continue
+            temp = remaining_features
+            temp.remove(feature)
+            temp_acc = to_accuracy_rf(data[temp],target)
+            if temp_acc >= acc :
+                acc = temp_acc
+                remaining_features = temp
     remaining_features.remove(target)
     return remaining_features
 
-def backward_selection_lr(data, target):
-    """
-    Perform backward feature selection using Logistic Regression.
-
-    Parameters
-    ----------
-    data : pandas.DataFrame
-        Input dataframe.
-    target : str
-        Target feature.
-
-    Returns
-    -------
-    list
-        List of selected features.
-    """
+def backward_selection_lr(data,target,max_columns=50):# lr= logistic regression
     features = data.columns.to_list()
     remaining_features = features
-    acc = to_accuracy_lr(data, target)
-    for feature in features:
-        if feature == target:
-            continue
-        temp = remaining_features
-        temp.remove(feature)
-        temp_acc = to_accuracy_lr(data[temp], target)
-        if temp_acc >= acc:
-            acc = temp_acc
-            remaining_features = temp
+    acc = to_accuracy_lr(data,target)
+    print(acc)
+    print(len(remaining_features))
+    while len(remaining_features) > max_columns :
+        print(len(remaining_features))
+        print(acc)
+        for feature in features :
+            if feature == target :
+                continue
+            temp = remaining_features
+            temp.remove(feature)
+            temp_acc = to_accuracy_lr(data[temp],target)
+            if temp_acc >= acc :
+                acc = temp_acc
+                remaining_features = temp
     remaining_features.remove(target)
     return remaining_features
 
-# Feature selection based on Embedded method
-def recursive_feature_elimination_rf(train_data, target, min_feature=1):
-    """
-    Perform recursive feature elimination using Random Forest.
 
-    Parameters
-    ----------
-    train_data : pandas.DataFrame
-        Input dataframe.
-    target : str
-        Target feature.
-    min_feature : int, optional
-        Minimum number of features to select, by default 1.
-
-    Returns
-    -------
-    list
-        List of selected features.
-    """
+#based on embedded
+def recursive_feature_elimination_rf(train_data,target,min_feature=1): # rf= random forest
     data = train_data.copy()
     features = data.columns.to_list()
     features.remove(target)
 
     importances = {}
-    for feature in features:
-        importances[feature] = gain_ratio(data, feature, target)
+    for feature in features :
+        importances[feature] = gain_ratio(data,feature,target)
 
-    # Eliminate least important features until reaching min_feature
-    while len(features) > min_feature:
+    while len(features) > min_feature :
         data = data[features]
         data[target] = train_data[target]
         
-        least_important_feature = min(importances, key=importances.get)
+        least_important_feature = min(importances, key=importances.get)        
         
         features.remove(least_important_feature)
         del importances[least_important_feature]
 
     return features
 
-def recursive_feature_elimination_lr(train_data, target, min_feature=1):
-    """
-    Perform recursive feature elimination using Logistic Regression.
 
-    Parameters
-    ----------
-    train_data : pandas.DataFrame
-        Input dataframe.
-    target : str
-        Target feature.
-    min_feature : int, optional
-        Minimum number of features to select, by default 1.
-
-    Returns
-    -------
-    list
-        List of selected features.
-    """
+def recursive_feature_elimination_lr(train_data,target,min_feature=1): # lr= logistic regression
     data = train_data.copy()
     features = data.columns.to_list()
     features.remove(target)
@@ -232,16 +139,15 @@ def recursive_feature_elimination_lr(train_data, target, min_feature=1):
     train_x = scaler.fit_transform(train_x)
 
     importances = {}
-    for i, feature in enumerate(features):
-        w, _ = train_lr(train_x, train_y, epsilon=0.00001, max_iteration=3000)
+    w,_= train_lr(train_x,train_y,epsilon=0.00001,max_iteration = 3000)
+    for i,feature in enumerate(features) :
         importances[feature] = np.abs(w[i])
 
-    # Eliminate least important features until reaching min_feature
-    while len(features) > min_feature:
+    while len(features) > min_feature :
         data = data[features]
         data[target] = train_data[target]
         
-        least_important_feature = max(importances, key=importances.get)
+        least_important_feature = min(importances, key=importances.get)        
         
         features.remove(least_important_feature)
         del importances[least_important_feature]
