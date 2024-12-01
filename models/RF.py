@@ -75,7 +75,18 @@ class RandomForest:
         """
         if self.verbose:
             print("Predicting...")
+
         return X.apply(self._predict_single, axis=1)
+
+    def get_params(self, deep=True):
+        return {"n_estimators": self.n_estimators,
+                "max_depth": self.max_depth,
+                "max_features": self.max_features,
+                "verbose": self.verbose}
+
+    def score(self, X, y):
+        y_pred = self.predict(X)
+        return np.mean(y_pred == y)
 
 # Example usage
 if __name__ == "__main__":
@@ -105,6 +116,6 @@ if __name__ == "__main__":
 
     # Predict and evaluate
     y_pred = rf.predict(X_test)
+
     print("Evaluating...")
     print(classification_report(y_test, y_pred))
-

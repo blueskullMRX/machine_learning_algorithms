@@ -5,7 +5,7 @@ class LogisticRegression:
     Logistic Regression model trained using gradient descent.
     Supports binary classification.
     """
-    def __init__(self, learning_rate=0.01, epsilon=1e-5, max_iter=3000):
+    def __init__(self, learning_rate=0.01, epsilon=1e-5, max_iter=1000):
         """
         Initialize the model.
 
@@ -112,6 +112,23 @@ class LogisticRegression:
         """
         probabilities = self.predict_proba(X)
         return (probabilities >= 0.5).astype(int)
+    
+    
+    def score(self, X, y):
+        y_pred = self.predict(X)
+        return np.mean(y_pred == y)
+
+    
+    def get_params(self, deep=False):
+        params = {
+            'learning_rate': self.learning_rate,
+            'epsilon': self.epsilon,
+            'max_iter': self.max_iter
+        }
+        if deep:
+            return params
+        else:
+            return {key: value for key, value in params.items() if not callable(value) and not isinstance(value, type)}
 
 # Example Usage
 if __name__ == "__main__":

@@ -48,12 +48,14 @@ def find_numeric_threshold_global(feature_values, labels):
 
     def entropy_split(threshold):
         left_mask = feature_values <= threshold
-        right_mask = feature_values > threshold
         left_entropy = shannon_entropy(labels[left_mask])
-        right_entropy = shannon_entropy(labels[right_mask])
-        return (
-            left_mask.mean() * left_entropy + right_mask.mean() * right_entropy
-        )
+        right_entropy = shannon_entropy(labels[~left_mask])
+
+        left_size = left_mask.sum()
+        right_size = len(labels) - left_size
+        total_size = len(labels)
+
+        return (left_entropy * left_size + right_entropy * right_size) / total_size
 
     result = minimize_scalar(
         entropy_split,
@@ -190,12 +192,17 @@ def main():
     titanic_data.drop(columns=['embarked', 'who', 'deck', 'alive', 'alone', 'adult_male'], inplace=True)
     titanic_data.dropna(inplace=True)
     titanic_data.drop_duplicates(inplace=True)
+    
     categorical_features = titanic_data.select_dtypes(include=['object', 'category'])
     numeric_features = titanic_data.select_dtypes(include=['float64', 'int64']).drop(columns=['survived'])
+    
     data = pd.concat([categorical_features, numeric_features], axis=1)
     labels = titanic_data['survived']
+    
     X_train, X_test, y_train, y_test = train_test_split(data, labels, test_size=0.2, random_state=42)
+    
     decision_tree = fit(X_train, y_train)
+    
     print_tree(decision_tree)
     y_pred = predict(X_test, decision_tree)
     print(classification_report(y_test, y_pred))

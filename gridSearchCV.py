@@ -37,8 +37,8 @@ param_grid_lr = {
     'max_iter': [10, 100, 1000, 10000],
 }
 
-total_iterations = len(ParameterGrid(param_grid_lr))
 print(f'Testing {lr.__name__}')
+total_iterations = len(ParameterGrid(param_grid_lr))
 for i, hyperparam_dict in enumerate(ParameterGrid(param_grid_lr), start=1):
     model = lr(**hyperparam_dict)
     model.fit(X_train, y_train)
@@ -82,17 +82,17 @@ best_models[best_model] = [best_params, best_score]
 
 # Training the LightGBM 
 param_grid_lgb= {
-    'n_estimators': [50, 100, 150, 200],
-    'learning_rate': [ 0.0001, 0.001, 0.01, 0.1],
-    'max_depth': [3,5,7,10],
+    'n_estimators': [1, 3, 5],
+    'max_depth': [1, 3, 5],
+    'learning_rate': [0.1, 0.01, 0.001],
 }
 
 best_model = None
 best_score = 0
 best_params = {}
 
-total_iterations = len(ParameterGrid(param_grid_lgb))
 print(f'Testing {lgb.__name__}')
+total_iterations = len(ParameterGrid(param_grid_lgb))
 for i, hyperparam_dict in enumerate(ParameterGrid(param_grid_lgb), start=1):
     model = lgb(**hyperparam_dict)
     model.fit(X_train, y_train)

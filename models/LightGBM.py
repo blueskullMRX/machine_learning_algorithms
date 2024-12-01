@@ -1,117 +1,71 @@
 import numpy as np
 import pandas as pd
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split
+from DT import fit, predict
 
-class LightGBM:
+class LightGBMClassifier:
     """
-    A simple implementation of a LightGBM-like gradient boosting classifier.
-    Currently supports binary classification.
+    A simplified LightGBM-like gradient boosting classifier.
     """
+
     def __init__(self, n_estimators=100, learning_rate=0.1, max_depth=3):
-        """
-        Initialize the LightGBM classifier.
-
-        Parameters:
-        - n_estimators (int): Number of boosting rounds.
-        - learning_rate (float): Step size shrinkage used to prevent overfitting.
-        - max_depth (int): Maximum depth of each tree (unused in this implementation).
-        """
         self.n_estimators = n_estimators
         self.learning_rate = learning_rate
         self.max_depth = max_depth
         self.trees = []
+        self.tree_weights = []
 
     @staticmethod
     def _sigmoid(x):
-        """Compute the sigmoid of x."""
         return 1 / (1 + np.exp(-x))
-
-    def _compute_leaf_value(self, gradients, hessians):
-        """Compute the optimal leaf value for a single leaf."""
-        return -np.sum(gradients) / (np.sum(hessians) + 1e-6)
-
-    def _build_tree(self, X, gradients, hessians):
-        """
-        Build a simple tree for this iteration.
-        Currently, it produces a single-leaf tree.
-        """
-        leaf_value = self._compute_leaf_value(gradients, hessians)
-        return lambda x: pd.Series(np.full(x.shape[0], leaf_value), index=x.index)
-
-    def _validate_input(self, X, y):
-        """Ensure input arrays are valid."""
-        if not isinstance(X, pd.DataFrame) or not isinstance(y, pd.Series):
-            raise ValueError("X and y must be pandas DataFrames and Series.")
-        if len(X) != len(y):
-            raise ValueError("X and y must have the same number of samples.")
-        if len(y.unique()) != 2:
-            raise ValueError("Only binary classification is supported.")
 
     def fit(self, X, y):
         """
-        Fit the model to the training data.
-
-        Parameters:
-        - X (pandas.DataFrame): Training features of shape (n_samples, n_features).
-        - y (pandas.Series): Binary labels (0/1 or -1/1) of shape (n_samples,).
+        Train the LightGBM classifier.
         """
-        self._validate_input(X, y)
-        m, n = X.shape
-        predictions = pd.Series(np.zeros(m), index=X.index)
-        
-        # Ensure binary labels are -1 and 1
-        unique_labels = y.unique()
-        y_encoded = y.map({unique_labels[0]: -1, unique_labels[1]: 1})
 
+        predictions = np.zeros(len(y))
         for _ in range(self.n_estimators):
-            # Compute gradients and hessians
-            sigmoid_preds = self._sigmoid(predictions)
-            gradients = -y_encoded * (1 - sigmoid_preds)
-            hessians = sigmoid_preds * (1 - sigmoid_preds)
+            residuals = pd.Series(y - self._sigmoid(predictions))
 
-            # Build and store the current tree
-            tree = self._build_tree(X, gradients, hessians)
+            tree = fit(X, y, max_depth=self.max_depth)
+            tree_predictions = predict(X, tree)
+
             self.trees.append(tree)
-
-            # Update predictions
-            predictions += self.learning_rate * tree(X)
+            predictions += self.learning_rate * tree_predictions
 
     def predict(self, X):
-        """
-        Predict binary labels for the input data.
+        X = X.values if isinstance(X, pd.DataFrame) else X
 
-        Parameters:
-        - X (pandas.DataFrame): Input features of shape (n_samples, n_features).
-
-        Returns:
-        - pandas.Series: Predicted binary labels (0/1).
-        """
-        if not isinstance(X, pd.DataFrame):
-            raise ValueError("X must be a pandas DataFrame.")
-        
-        predictions = pd.Series(np.zeros(X.shape[0]), index=X.index)
+        predictions = np.zeros(X.shape[0])
         for tree in self.trees:
-            predictions += self.learning_rate * tree(X)
-        return (predictions > 0).astype(int)
+            predictions += self.learning_rate * predict(X)
 
-# Example usage
-if __name__ == "__main__":
-    from sklearn.datasets import load_iris
-    X, y = load_iris(return_X_y=True)
-    
-    # Convert to a binary classification problem
-    y = (y == 0).astype(int)
-    
-    # Split the data
+        probabilities = self._sigmoid(predictions)
+        return (probabilities > 0.5).astype(int)
+
+    def score(self, X, y):
+        return np.mean(self.predict(X) == y)
+
+
+def main():
+    from sklearn.datasets import load_breast_cancer
+    data = load_breast_cancer(as_frame=True)
+    X = data.data
+    y = data.target
+
+    X = X.dropna().drop_duplicates()
+    y = y.loc[X.index].reset_index(drop=True)
+
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Initialize and train the model
-    model = LightGBM(n_estimators=10, learning_rate=0.1)
+    model = LightGBMClassifier(n_estimators=10, learning_rate=0.01, max_depth=3)
     model.fit(X_train, y_train)
-    
-    # Predict and evaluate
+
     y_pred = model.predict(X_test)
-    print("Accuracy:", accuracy_score(y_test, y_pred))
+    print(classification_report(y_test, y_pred))
 
 
+if __name__ == "__main__":
+    main()
