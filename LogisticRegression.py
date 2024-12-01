@@ -22,9 +22,23 @@ class LogisticRegression:
         self.bias = 0
 
     @staticmethod
-    def sigmoid(z):
-        """Compute the sigmoid function."""
-        return 1 / (1 + np.exp(-z))
+    def sigmoid(x: np.ndarray) -> np.ndarray:
+        """
+        Numerically stable sigmoid function to prevent overflow and handle invalid division.
+        Args:
+            x (np.ndarray): Input array
+        Returns:
+            np.ndarray: Sigmoid of input
+        """
+        with np.errstate(over='ignore', divide='ignore', invalid='ignore'):
+            positive_mask = x >= 0
+            negative_mask = ~positive_mask
+            
+            z = np.zeros_like(x, dtype=float)
+            z[positive_mask] = 1 / (1 + np.exp(-x[positive_mask]))
+            z[negative_mask] = np.exp(x[negative_mask]) / (1 + np.exp(x[negative_mask]))
+            
+            return z
 
     @staticmethod
     def compute_loss(y, y_pred):
