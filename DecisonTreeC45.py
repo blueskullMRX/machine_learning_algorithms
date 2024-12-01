@@ -10,13 +10,16 @@ class DecisionTree :
 
     #main methods :
 
-    def fit(self,data,target_feature='class',current_depth = 0) : 
+    def fit(self,data,target_feature='class') : 
+        self.tree = self.build_tree(data,target_feature)
+
+    def build_tree(self,data,target_feature='class',current_depth = 0) : 
         #stopping conditions : data size , no more features to test on , max depth acheived
         if data.shape[0] < self.min_data or len(data[target_feature].unique()) == 1 or current_depth>=self.max_depth:
             return data[target_feature].mode()[0]
         
         #stopping condition : highest chi2 feature returned none
-        best_feature = DecisionTree.find_highest_gain_ratio_value(data, target_feature)
+        best_feature = self.find_highest_gain_ratio_value(data, target_feature)
         if best_feature is None:
             return data[target_feature].mode()[0]  
         
@@ -24,9 +27,9 @@ class DecisionTree :
 
         tree = {best_feature:{}}
         for best_feature_value in best_feature_values :
-            tree[best_feature][best_feature_value] = self.fit(DecisionTree.divide_data(data,best_feature)[best_feature_value],target_feature,current_depth=current_depth+1)
+            tree[best_feature][best_feature_value] = self.build_tree(self.divide_data(data,best_feature)[best_feature_value],target_feature,current_depth=current_depth+1)
             
-        self.tree = tree
+        return tree
     
     def predict(self,data) :
         test_res_predicted = []
@@ -45,7 +48,6 @@ class DecisionTree :
                 count += 1
         return count/len(predicted)
     
-    @staticmethod
     def classify(tree, sample):
         #if sample is a leaf returns the value 1 or 0
         if not isinstance(tree, dict): 
