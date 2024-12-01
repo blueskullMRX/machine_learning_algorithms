@@ -3,14 +3,14 @@
 import os, pandas as pd
 from feature_selection import (
     corr_filter, 
+    corr_filter_between,
     backward_selection_rf, 
     backward_selection_lr,
     recursive_feature_elimination_rf, 
     recursive_feature_elimination_lr,
 )
 
-
-def efsa_pipeline(dataframe, target_column, verbose=False):
+def efsa_pipeline(dataframe, target_column, verbose=False, max_columns:int=25, min_cor:float=0.24):
     """
     Perform Enhanced Feature Selection Algorithm (EFSA).
     """
@@ -35,32 +35,32 @@ def efsa_pipeline(dataframe, target_column, verbose=False):
 
 
     if verbose: print('\t--->Filter based wrapper... ', end='')
-    selected_features = corr_filter(data, target_column)
+    selected_features = corr_filter_between(data, target_column, min_cor)
     subsets['Corr-Filter'] = selected_features
     if verbose: print('Done')
 
 
     if verbose: print("\t--->Backward elimination based wrapper: ", end='')
-    selected_features = backward_selection_rf(data, target='class')
+    selected_features = backward_selection_rf(data, target='class', max_columns=max_columns)
     subsets['RF-Wrapper'] = selected_features
 
-    selected_features = backward_selection_lr(data, target='class')
+    selected_features = backward_selection_lr(data, target='class',max_columns=max_columns)
     subsets['LR-Wrapper'] = selected_features
     
-    selected_features = backward_selection_lr(data, target='class')
-    subsets['Wrapper'] = selected_features
+    # selected_features = backward_selection_lr(data, target='class', max_columns=max_columns)
+    subsets['LGBM-Wrapper'] = selected_features
     if verbose: print('Done')
 
 
     if verbose: print('\t--->Recusrive Feature Elimination based Embedded: ', end='')
-    selected_features = recursive_feature_elimination_rf(data, target='class')
+    selected_features = recursive_feature_elimination_rf(data, target='class', min_feature=max_columns)
     subsets['RF-Embedded'] = selected_features
 
-    selected_features = recursive_feature_elimination_lr(data, target='class')
+    selected_features = recursive_feature_elimination_lr(data, target='class', min_feature=max_columns)
     subsets['LR-Embedded'] = selected_features
 
-    selected_features = recursive_feature_elimination_lr(data, target='class')
-    subsets['Embedded'] = selected_features
+    # selected_features = recursive_feature_elimination_lr(data, target='class', min_feature=max_columns)
+    subsets['LGBM-Embedded'] = selected_features
     if verbose: print('Done\n')
 
 
