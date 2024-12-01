@@ -124,22 +124,23 @@ class RandomForest:
         y_pred = self.predict(self.oob_data)
         return (y_true == y_pred).mean()
 
+    def accuracy(self, y_pred, y_true):
+        return (y_true == y_pred).mean()
 
 # Example usage
 if __name__ == "__main__":
-    # Example dataset
-    np.random.seed(0)
-    df = pd.DataFrame({
-        "feature1": np.random.rand(100),
-        "feature2": np.random.rand(100),
-        "class": np.random.choice([0, 1], size=100),
+    data = pd.DataFrame({
+        'Outlook': ['Sunny', 'Sunny', 'Overcast', 'Rain', 'Rain', 'Rain', 'Overcast', 'Sunny', 'Sunny', 'Rain', 'Sunny', 'Overcast', 'Overcast', 'Rain'],
+        'Temperature': ['Hot', 'Hot', 'Hot', 'Mild', 'Cool', 'Cool', 'Cool', 'Mild', 'Cool', 'Mild', 'Mild', 'Mild', 'Hot', 'Mild'],
+        'Humidity': ['High', 'High', 'High', 'High', 'Normal', 'Normal', 'Normal', 'High', 'Normal', 'Normal', 'Normal', 'High', 'Normal', 'High'],
+        'Windy': [False, True, False, False, False, True, True, False, False, False, True, True, False, True],
+        'Play': ['No', 'No', 'Yes', 'Yes', 'Yes', 'No', 'Yes', 'No', 'Yes', 'Yes', 'Yes', 'Yes', 'Yes', 'No']
     })
 
-    RandomForest = RandomForest(n_trees=10, max_depth=5, min_data=5, target_feature="class")
-    RandomForest.fit(df)
+    # Instantiate and train the decision tree
+    rf = RandomForest(n_trees=5, max_depth=3, min_data=10, target_feature='Play')
+    rf.fit(data)
+    predictions = rf.predict(data)
+    accuracy_score = rf.accuracy(predictions, data['Play'])
 
-    predictions = RandomForest.predict(df)
-    print("Predictions:", predictions)
-
-    oob_accuracy = RandomForest.evaluate_oob()
-    print("OOB Accuracy:", oob_accuracy)
+    print(f"\nAccuracy: {accuracy_score * 100:.2f}%")
