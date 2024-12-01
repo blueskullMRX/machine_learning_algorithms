@@ -36,12 +36,12 @@ from RandomForest import train_random_forest,predict_random_forest,accuracy,gain
 
 def to_accuracy_rf(data,target):# rf= random forest
 
-    train,test = train_test_split(data, test_size=0.4, random_state=42)
+    train,test = train_test_split(data, test_size=0.2, random_state=42)
     
     train = pd.DataFrame(data=train,columns=data.columns)
     test = pd.DataFrame(data=test,columns=data.columns)
     
-    trees,_ = train_random_forest(train,tree_max_depth=8,nbr_trees=5)
+    trees,_ = train_random_forest(train,tree_max_depth=4,nbr_trees=8)
     pred = predict_random_forest(trees,test)
     return accuracy(pred,test[target])
 
@@ -55,7 +55,7 @@ def to_accuracy_lr(data,target):# lr= logistic regression
     scaler = StandardScaler()
     x = scaler.fit_transform(x)
 
-    x_train,x_test,y_train,y_test = train_test_split(x,y, test_size=0.4, random_state=42)
+    x_train,x_test,y_train,y_test = train_test_split(x,y, test_size=0.2, random_state=42)
     y_test = pd.DataFrame(data=y_test,columns=[target])
 
     w,b = train_lr(x_train,y_train,epsilon=0.00001,max_iteration = 3000)
@@ -63,35 +63,45 @@ def to_accuracy_lr(data,target):# lr= logistic regression
     return accuracy(pred,y_test)
 
 
-def backward_selection_rf(data,target):# rf= random forest
+def backward_selection_rf(data,target,max_columns=50):# rf= random forest
     features = data.columns.to_list()
     remaining_features = features
     acc = to_accuracy_rf(data,target)
-    for feature in features :
-        if feature == target :
-            continue
-        temp = remaining_features
-        temp.remove(feature)
-        temp_acc = to_accuracy_rf(data[temp],target)
-        if temp_acc >= acc :
-            acc = temp_acc
-            remaining_features = temp
+    print(acc)
+    print(len(remaining_features))
+    while len(remaining_features) > max_columns :
+        print(len(remaining_features))
+        print(acc)
+        for feature in features :
+            if feature == target :
+                continue
+            temp = remaining_features
+            temp.remove(feature)
+            temp_acc = to_accuracy_rf(data[temp],target)
+            if temp_acc >= acc :
+                acc = temp_acc
+                remaining_features = temp
     remaining_features.remove(target)
     return remaining_features
 
-def backward_selection_lr(data,target):# lr= logistic regression
+def backward_selection_lr(data,target,max_columns=50):# lr= logistic regression
     features = data.columns.to_list()
     remaining_features = features
     acc = to_accuracy_lr(data,target)
-    for feature in features :
-        if feature == target :
-            continue
-        temp = remaining_features
-        temp.remove(feature)
-        temp_acc = to_accuracy_lr(data[temp],target)
-        if temp_acc >= acc :
-            acc = temp_acc
-            remaining_features = temp
+    print(acc)
+    print(len(remaining_features))
+    while len(remaining_features) > max_columns :
+        print(len(remaining_features))
+        print(acc)
+        for feature in features :
+            if feature == target :
+                continue
+            temp = remaining_features
+            temp.remove(feature)
+            temp_acc = to_accuracy_lr(data[temp],target)
+            if temp_acc >= acc :
+                acc = temp_acc
+                remaining_features = temp
     remaining_features.remove(target)
     return remaining_features
 
