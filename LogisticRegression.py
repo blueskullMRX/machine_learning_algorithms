@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 class LogisticRegression:
     """
@@ -97,14 +98,19 @@ class LogisticRegression:
         probabilities = self.predict_proba(X)
         return (probabilities >= 0.5).astype(int)
 
+    def accuracy(self, y_pred, y_true):
+        return (y_true == y_pred).mean()
+    
 # Example Usage
 if __name__ == "__main__":
-    np.random.seed(0)
-    X = np.random.rand(100, 2)
-    y = (X[:, 0] + X[:, 1] >= 1).astype(int)
+    from sklearn.datasets import load_breast_cancer
+    data = pd.DataFrame(load_breast_cancer().data, columns=load_breast_cancer().feature_names)
+    data['target'] = load_breast_cancer().target
+    from sklearn.model_selection import train_test_split
+    X_train, X_test, y_train, y_test = train_test_split(data.drop('target', axis=1), data['target'], test_size=0.2, random_state=42)
 
-    model = LogisticRegression(learning_rate=0.1, epsilon=1e-5, max_iter=3000)
-    model.fit(X, y)
-    y_pred = model.predict(X)
-
-    print("Predictions:", y_pred)
+    lr = LogisticRegression(learning_rate=0.01, epsilon=1e-5, max_iter=3000)
+    lr.fit(X_train, y_train)
+    predictions = lr.predict(X_test)
+    accuracy_score = lr.accuracy(predictions, y_test)
+    print(f"\nAccuracy: {accuracy_score * 100:.2f}%")
