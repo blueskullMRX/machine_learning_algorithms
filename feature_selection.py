@@ -41,7 +41,7 @@ def to_accuracy_rf(data,target):# rf= random forest
     train = pd.DataFrame(data=train,columns=data.columns)
     test = pd.DataFrame(data=test,columns=data.columns)
     
-    trees,_ = train_random_forest(train,tree_max_depth=4,nbr_trees=8)
+    trees,_ = train_random_forest(train,tree_max_depth=4,nbr_trees=5)
     pred = predict_random_forest(trees,test)
     return accuracy(pred,test[target])
 
@@ -63,45 +63,59 @@ def to_accuracy_lr(data,target):# lr= logistic regression
     return accuracy(pred,y_test)
 
 
-def backward_selection_rf(data,target,max_columns=50):# rf= random forest
+def backward_selection_rf(data,target):# rf= random forest
     features = data.columns.to_list()
-    remaining_features = features
+    remaining_features = list(features)
     acc = to_accuracy_rf(data,target)
-    print(acc)
-    print(len(remaining_features))
-    while len(remaining_features) > max_columns :
-        print(len(remaining_features))
-        print(acc)
+    #print(acc)
+    print(f"Number of feature remaining : {len(remaining_features)}")
+    while True :
+        features = list(remaining_features)
+        #print(len(remaining_features))
+        #print(acc)
+        feature_count = len(remaining_features)
+        i=0
         for feature in features :
+            i+=1
+            print(i,end=' ')
             if feature == target :
                 continue
-            temp = remaining_features
+            temp = list(remaining_features)
             temp.remove(feature)
             temp_acc = to_accuracy_rf(data[temp],target)
             if temp_acc >= acc :
                 acc = temp_acc
-                remaining_features = temp
+                remaining_features = list(temp)
+        print(f"Number of feature remaining : {len(remaining_features)}")
+        if feature_count == len(remaining_features) : break
     remaining_features.remove(target)
     return remaining_features
 
-def backward_selection_lr(data,target,max_columns=50):# lr= logistic regression
+def backward_selection_lr(data,target):# lr= logistic regression
     features = data.columns.to_list()
-    remaining_features = features
+    remaining_features = list(features)
     acc = to_accuracy_lr(data,target)
-    print(acc)
-    print(len(remaining_features))
-    while len(remaining_features) > max_columns :
-        print(len(remaining_features))
-        print(acc)
+    #print(acc)
+    print(f"Number of feature remaining : {len(remaining_features)}")
+    while True :
+        features = list(remaining_features)
+        #print(len(remaining_features))
+        #print(acc)
+        feature_count = len(remaining_features)
+        i = 0
         for feature in features :
+            i+=1
+            print(i,end=' ')
             if feature == target :
                 continue
-            temp = remaining_features
+            temp = list(remaining_features)
             temp.remove(feature)
             temp_acc = to_accuracy_lr(data[temp],target)
             if temp_acc >= acc :
                 acc = temp_acc
-                remaining_features = temp
+                remaining_features = list(temp)
+        print(f"Number of feature remaining : {len(remaining_features)}")
+        if feature_count == len(remaining_features) : break
     remaining_features.remove(target)
     return remaining_features
 
