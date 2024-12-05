@@ -30,7 +30,7 @@ def train_lr(X,y,learning_rate=0.01,epsilon=0.00001,max_iteration = 3000):
         loss = compute_loss(y, y_pred)
 
         if prev_loss != None and np.abs(loss-prev_loss) < epsilon:
-            print(f"Converged at iteration {iteration + 1}")
+            #print(f"Converged at iteration {iteration + 1}")
             break
     return weights,bias
 
@@ -41,4 +41,3 @@ def predict_proba(X,weights,bias):
 def predict(X,weights,bias):
     p = predict_proba(X,weights,bias)
     return (p >= 0.5).astype(int)
-

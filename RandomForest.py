@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from DecisonTreeC45 import entropy,entropy_main,gain,si,gain_ratio,best_split_value,to_category,detect_continuous_columns,find_highest_gain_ratio_value,divide_data,classify,predict,accuracy
+from DecisionTreeC45 import entropy,entropy_main,gain,si,gain_ratio,best_split_value,to_category,detect_continuous_columns,find_highest_gain_ratio_value,divide_data,classify,predict,accuracy
 
 def random_feature_selection(features):
     num_features_to_select = int(np.ceil(np.sqrt(len(features))))
