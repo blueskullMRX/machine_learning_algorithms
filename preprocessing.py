@@ -61,7 +61,8 @@ def preprocessing_pipeline(dataframe,
     if dataframe.isna().sum().sum() > 0:
         if verbose: print('handling missing values ...', end='')
         data = handle_missing_values(data, option=missing_values_option)
-        if verbose: print('done')
+        if verbose: print('done')  
+    else: print('no missing values detected')
 
 
     if len(np.unique(dataframe[target_column])) > 1:

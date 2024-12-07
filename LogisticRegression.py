@@ -1,11 +1,13 @@
 import numpy as np
 import pandas as pd
 
-def sigmoid(z):
-    return 1 / (1 + np.exp(-z))
+def sigmoid(x: np.ndarray) -> np.ndarray:
+    return 1 / (1 + np.exp(-x))
+    
 
 def compute_loss(y, y_pred):
     m = len(y)
+    y_pred = np.clip(y_pred, 1e-10, 1 - 1e-10)
     return -1 / m * np.sum(y * np.log(y_pred) + (1 - y) * np.log(1 - y_pred))
 
 def train_lr(X,y,learning_rate=0.01,epsilon=0.00001,max_iteration = 3000):
